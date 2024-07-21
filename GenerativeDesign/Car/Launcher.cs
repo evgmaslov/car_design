@@ -4,7 +4,7 @@ using GenerativeDesign.Cars;
 
 namespace GenerativeDesign
 {
-    public class Research
+    public class Launcher
     {
         public static void Task()
         {
