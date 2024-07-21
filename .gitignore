@@ -361,3 +361,5 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+/PikoGK/PicoGK Example
+/PicoGK_Installer_1.6.0_Win64.exe
