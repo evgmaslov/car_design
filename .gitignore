@@ -363,3 +363,10 @@ MigrationBackup/
 FodyWeavers.xsd
 /PikoGK/PicoGK Example
 /PicoGK_Installer_1.6.0_Win64.exe
+/LatticeLibrary
+/PicoGK
+/QuasiCrystals
+/ShapeKernel
+*.md
+*.dat
+/unins000.exe
