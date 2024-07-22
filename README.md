@@ -15,7 +15,7 @@ To install this project and start to use it you should do the following steps:
     
 3. Download PicoGK installer from [here](https://github.com/leap71/PicoGK/releases) (.exe file) and run it. Here you must choose some folder:
     
-    ![Untitled](Generative%20design%20193f4f22485e4bec9432c4dcbf29a39e/Untitled%201.png)
+    ![Untitled](imgs/Untitled%201.png)
     
 4. Open the folder from step 3. You should see the same picture
     
