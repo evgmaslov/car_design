@@ -7,10 +7,4 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
-  <ItemGroup>
-    <Reference Include="System.CodeDom">
-      <HintPath>..\..\..\Программирование\SwanDetection\SwanDetection\bin\x86\Debug\AppX\System.CodeDom.dll</HintPath>
-    </Reference>
-  </ItemGroup>
-
 </Project>

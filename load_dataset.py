@@ -6,6 +6,8 @@ parser = argparse.ArgumentParser(description='Loading dataset')
 parser.add_argument('path', type=str, help='Path to save dataset')
 args = parser.parse_args()
 dataset_path = args.path
+if not os.path.exists(dataset_path):
+  os.mkdir(dataset_path)
 
 dataset = load_dataset("evgmaslov/gen_cars")
 codes = dataset["train"]["codes"]

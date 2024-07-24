@@ -1,4 +1,6 @@
-﻿namespace GenerativeDesign.Cars
+﻿using System;
+using System.Collections;
+namespace GenerativeDesign.Cars
 {
     public class Car : CarBase
     {

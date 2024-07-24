@@ -2,9 +2,7 @@
 using PicoGK;
 using GenerativeDesign.Cars;
 using System.Text.RegularExpressions;
-using System.CodeDom.Compiler;
-using Microsoft.CSharp;
-using System.Reflection;
+using System.Numerics;
 
 namespace GenerativeDesign
 {
@@ -263,56 +261,40 @@ namespace GenerativeDesign
             int ind = 0;
             foreach (string sourcePath in carPaths)
             {
-                FileInfo sourceFile = new FileInfo(sourcePath);
-                string outputName = string.Format(@"{0}\{1}.dll",
-                Environment.CurrentDirectory,
-                Path.GetFileNameWithoutExtension(sourceFile.Name));
-
-                bool success = Compile(sourceFile, new CompilerParameters()
+                string code = "";
+                using (StreamReader reader = new StreamReader($"C:\\Все_файлы\\Научная_деятельность\\GenerativeDesign\\CarsDataset\\OutputCode\\Code_{randomInds[ind]}.cs"))
                 {
-                    GenerateExecutable = false, // compile as library (dll)
-                    OutputAssembly = outputName,
-                    GenerateInMemory = false, // as a physical file
-                });
-
-                if (success)
-                {
-                    Assembly assembly = Assembly.LoadFrom(outputName);
-                    Type carType = assembly.GetType("Car");
-                    object carInstance = Activator.CreateInstance(carType);
-
-                    if (carInstance is Car)
-                    {
-                        Car car = (Car)carInstance;
-                        car.BasePoint.X = ind * shift;
-                        ind++;
-                        Voxels voxels = car.voxConstruct();
-                        Sh.PreviewVoxels(voxels, Cp.clrRock);
-                    }
+                    code = reader.ReadToEnd();
                 }
+                RoslynCompiler compiler = new RoslynCompiler("GenerativeDesign.Cars.Car", code, new[] { typeof(Console), typeof(CarBase), typeof(List<>) });
+                Type carType = compiler.Compile();
+                object carInstance = Activator.CreateInstance(carType);
+
+                Vector3 position = new Vector3(shift * ind, 0, 0);
+                carType.GetField("BasePoint").SetValue(carInstance, position);
+                object objVoxels = carType.GetMethod("voxConstruct").Invoke(carInstance, new object[] { });
+                Voxels voxCar = (Voxels)objVoxels;
+                Sh.PreviewVoxels(voxCar, Cp.clrRock);
+                ind++;
             }
         }
 
-        private static bool Compile(FileInfo sourceFile, CompilerParameters options)
+        public static void FixDataset()
         {
-            CodeDomProvider provider = CodeDomProvider.CreateProvider("CSharp");
-
-            CompilerResults results = provider.CompileAssemblyFromSource(options, sourceFile.FullName);
-
-            if (results.Errors.Count > 0)
+            List<string> allCodes = Directory.GetFiles("C:\\Все_файлы\\Научная_деятельность\\GenerativeDesign\\CarsDataset\\OutputCode").ToList();
+            foreach (string path in allCodes)
             {
-                Console.WriteLine("Errors building {0} into {1}", sourceFile.Name, results.PathToAssembly);
-                foreach (CompilerError error in results.Errors)
+                string oldcode = "";
+                using (StreamReader reader = new StreamReader(path))
                 {
-                    Console.WriteLine("  {0}", error.ToString());
-                    Console.WriteLine();
+                    oldcode = reader.ReadToEnd();
                 }
-                return false;
-            }
-            else
-            {
-                Console.WriteLine("Source {0} built into {1} successfully.", sourceFile.Name, results.PathToAssembly);
-                return true;
+                string insertion = "using System;\r\nusing System.Collections;\r\n";
+                string newCode = insertion + oldcode;
+                using (StreamWriter writer = new StreamWriter(path))
+                {
+                    writer.Write(newCode);
+                }
             }
         }
     }
