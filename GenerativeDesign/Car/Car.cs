@@ -1,4 +1,5 @@
-﻿using System;
+﻿using System.Collections.Generic;
+using System;
 using System.Collections;
 namespace GenerativeDesign.Cars
 {
@@ -6,38 +7,23 @@ namespace GenerativeDesign.Cars
     {
         public Car()
         {
-            Length = 60;
-            Width = 30;
-            Height = 30;
+            Length = 320f;
+            Width = 145f;
+            Height = 140f;
 
-            WheelWidth = 5;
-            WheelRadius = 5;
+            WheelWidth = 15f;
+            WheelRadius = 35.15f;
             WheelRelativeBiasAlongWidth = 0.1f;
             WheelRelativeBiasesAlongLength = new List<float>() { 0.2f, 0.8f };
 
-            WheelBaseSegmentsSpans = new List<List<float>>()
-            {
-                new List<float>(){0, 1},
-            };
-            WheelBaseSegmentsBottomSurfaces = new List<Line>()
-            {
-                new Constant(height: 5)
-            };
-            WheelBaseTopSurface = new Constant(height: 12);
-            GapBetweenWheelAndBase = 1;
+            WheelBaseSegmentsSpans = new List<List<float>>() { new List<float>() { 0f, 1f } };
+            WheelBaseSegmentsBottomSurfaces = new List<Line>() { new Constant(height: 17f) };
+            WheelBaseTopSurface = new Constant(height: 80f);
+            GapBetweenWheelAndBase = 3f;
 
-            BodySegmentsSpans = new List<List<float>>()
-            {
-                new List<float>(){0, 0.3f},
-                new List<float>(){0.3f, 0.8f},
-                new List<float>(){0.8f, 1},
-            };
-            BodySegmentsTopSurfaces = new List<Line>()
-            {
-                new TotalRounded(minHeight: 12, maxHeight: 20, leftRounded: true),
-                new Constant(height: 30),
-                new CornerRounded(minHeight: 12, maxHeight: 20, cornerRelativeLength: 0.5f, surfaceAbsoluteLength: 0.2f*60, leftCornerRounded: false, rightCornerRounded: true),
-            };
+            BodySegmentsSpans = new List<List<float>>() { new List<float>() { 0f, 0.3f }, new List<float>() { 0.3f, 1f } };
+            BodySegmentsTopSurfaces = new List<Line>() { new Constant(height: 84f), new CornerRounded(minHeight: 84f, maxHeight: 140f, cornerRelativeLength: 0.2f, surfaceAbsoluteLength: 224f, leftCornerRounded: true, rightCornerRounded: false) };
         }
     }
+
 }

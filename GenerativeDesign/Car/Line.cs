@@ -7,11 +7,13 @@ using System.Threading.Tasks;
 
 namespace GenerativeDesign.Cars
 {
-    public abstract class Line
+    public abstract class Line : ICloneable
     {
         public float MinHeight;
         public float MaxHeight;
         public abstract float Modulation(float length);
+        public abstract object Clone();
+        public abstract override bool Equals(object? obj);
     }
 
     public class Constant : Line
@@ -25,10 +27,18 @@ namespace GenerativeDesign.Cars
         {
             return MinHeight*2;
         }
-
         public override string ToString()
         {
             return $"new Constant(height: {MinHeight}f)";
+        }
+        public override object Clone()
+        {
+            Constant line = new Constant(MinHeight);
+            return line ;
+        }
+        public override bool Equals(object? obj)
+        {
+            return ((Constant)obj).MinHeight == MinHeight && ((Constant)obj).MaxHeight == MaxHeight;
         }
     }
 
@@ -58,6 +68,15 @@ namespace GenerativeDesign.Cars
         public override string ToString()
         {
             return $"new TotalRounded(minHeight: {MinHeight}f, maxHeight: {MaxHeight}f, leftRounded: {LeftRounded.ToString().ToLower()})";
+        }
+        public override object Clone()
+        {
+            TotalRounded line = new TotalRounded(MinHeight, MaxHeight, LeftRounded);
+            return line;
+        }
+        public override bool Equals(object? obj)
+        {
+            return ((TotalRounded)obj).MinHeight == MinHeight && ((TotalRounded)obj).MaxHeight == MaxHeight && ((TotalRounded)obj).LeftRounded == LeftRounded;
         }
     }
 
@@ -115,6 +134,16 @@ namespace GenerativeDesign.Cars
         public override string ToString()
         {
             return $"new CornerRounded(minHeight: {MinHeight}f, maxHeight: {MaxHeight}f, cornerRelativeLength: {CornerLength}f, surfaceAbsoluteLength: {TotalLength}f, leftCornerRounded: {LeftCorner.ToString().ToLower()}, rightCornerRounded: {RightCorner.ToString().ToLower()})";
+        }
+        public override object Clone()
+        {
+            CornerRounded line = new CornerRounded(MinHeight, MaxHeight, CornerLength, TotalLength, LeftCorner, RightCorner);
+            return line;
+        }
+        public override bool Equals(object? obj)
+        {
+            return ((CornerRounded)obj).MinHeight == MinHeight && ((CornerRounded)obj).MaxHeight == MaxHeight && ((CornerRounded)obj).CornerLength == CornerLength
+                && ((CornerRounded)obj).TotalLength == TotalLength && ((CornerRounded)obj).LeftCorner == LeftCorner && ((CornerRounded)obj).RightCorner == RightCorner;
         }
     }
 }

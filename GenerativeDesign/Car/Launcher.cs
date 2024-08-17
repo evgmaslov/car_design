@@ -27,8 +27,37 @@ namespace GenerativeDesign
 
         public static void SampleCars()
         {
-            AClass aClass = new AClass();
-            List<Car> cars = aClass.GetCars(10);
+            //Truck sedan = new Truck();
+            //sedan.NumValuesCount["Height"] = 2;
+            //List<Car> cars = sedan.GetCars(5);
+            //foreach (Car car in cars)
+            //{
+            //    Sh.PreviewVoxels(car.voxConstruct(), Cp.clrRock);
+            //}
+
+            List<Car> cars = new List<Car>();
+            CarType carType = new Sedan();
+            cars = cars.Concat(carType.GetCars(1)).ToList();
+            carType = new Hatchback();
+            cars = cars.Concat(carType.GetCars(1, baseY: 300)).ToList();
+            carType = new StationWagon();
+            cars = cars.Concat(carType.GetCars(1, baseY: 600)).ToList();
+            carType = new Coupe();
+            cars = cars.Concat(carType.GetCars(1, baseY: 900)).ToList();
+            carType = new Limousine();
+            cars = cars.Concat(carType.GetCars(1, baseY: 1200)).ToList();
+            carType = new SUV();
+            cars = cars.Concat(carType.GetCars(1, baseY: 1500)).ToList();
+            carType = new Pickup();
+            cars = cars.Concat(carType.GetCars(1, baseY: 1800)).ToList();
+            carType = new Minivan();
+            cars = cars.Concat(carType.GetCars(1, baseY: 2100)).ToList();
+            carType = new Van();
+            carType.NumValuesCount["Height"] = 2;
+            cars = cars.Concat(carType.GetCars(1, baseY: 2400)).ToList();
+            carType = new Truck();
+            carType.NumValuesCount["Height"] = 2;
+            cars = cars.Concat(carType.GetCars(1, baseY: 2700)).ToList();
             foreach (Car car in cars)
             {
                 Sh.PreviewVoxels(car.voxConstruct(), Cp.clrRock);
@@ -41,7 +70,8 @@ namespace GenerativeDesign
             List<Car> cars = aClass.GetCars();
             string path = "C:\\Все_файлы\\Научная_деятельность\\GenerativeDesign\\generative_design\\GenerativeDesign\\Car\\Car.cs";
             string file = File.ReadAllText(path);
-            List<string> texts = new List<string>();
+            List<string> texts_ru = new List<string>();
+            List<string> texts_en = new List<string>();
             for (int i = 0; i < cars.Count; i++)
             {
                 Car car = cars[i];
@@ -164,12 +194,19 @@ namespace GenerativeDesign
                 }
 
 
-                string text = "Напиши код для генерации автомобиля со следующими параметрами:";
-                text = text + $" длина: {car.Length} см;";
-                text = text + $" ширина: {car.Width} см;";
-                text = text + $" высота: {car.Height} см;";
-                text = text + $" ширина колеса: {car.WheelWidth} см;";
-                text = text + $" радиус колеса: {car.WheelRadius} см;";
+                string text_ru = "Напиши код для генерации автомобиля со следующими параметрами:";
+                text_ru = text_ru + $" длина: {car.Length} см;";
+                text_ru = text_ru + $" ширина: {car.Width} см;";
+                text_ru = text_ru + $" высота: {car.Height} см;";
+                text_ru = text_ru + $" ширина колеса: {car.WheelWidth} см;";
+                text_ru = text_ru + $" радиус колеса: {car.WheelRadius} см;";
+
+                string text_en = "Generate a car with the following characteristics:";
+                text_en = text_en + $" length: {car.Length} cm;";
+                text_en = text_en + $" width: {car.Width} cm;";
+                text_en = text_en + $" height: {car.Height} cm;";
+                text_en = text_en + $" wheel width: {car.WheelWidth} cm;";
+                text_en = text_en + $" wheel radius: {car.WheelRadius} cm;";
                 float minShift = float.MaxValue;
                 foreach (Line surf in car.WheelBaseSegmentsBottomSurfaces)
                 {
@@ -178,65 +215,85 @@ namespace GenerativeDesign
                         minShift = surf.MinHeight;
                     }
                 }
-                text = text + $" высота дорожного просвета: {minShift} см;";
+                text_ru = text_ru + $" высота дорожного просвета: {minShift} см;";
+                text_en = text_en + $" clearance height: {minShift} cm;";
 
                 List<List<float>> segmentSpans = car.BodySegmentsSpans;
                 List<Line> segmentSurfaces = car.BodySegmentsTopSurfaces;
                 if (segmentSpans[0][1] <= 0.2f)
                 {
-                    text = text + $" размер капота: малый;";
+                    text_ru = text_ru + $" размер капота: малый;";
+                    text_en = text_en + $" bonnet size : small;";
                 }
                 else if (segmentSpans[0][1] >= 0.3f)
                 {
-                    text = text + $" размер капота: большой;";
+                    text_ru = text_ru + $" размер капота: большой;";
+                    text_en = text_en + $" bonnet size : large;";
                 }
                 if (segmentSurfaces[0] is CornerRounded && ((CornerRounded)segmentSurfaces[0]).LeftCorner || segmentSurfaces[0] is TotalRounded)
                 {
-                    text = text + $" форма капота: скругленная;";
+                    text_ru = text_ru + $" форма капота: скругленная;";
+                    text_en = text_en + $" bonnet shape : rounded;";
                 }
                 else if (segmentSurfaces[0] is Constant)
                 {
-                    text = text + $" форма капота: прямая;";
+                    text_ru = text_ru + $" форма капота: прямая;";
+                    text_en = text_en + $" bonnet shape : flat;";
                 }
 
                 if ((segmentSpans.Count == 2 && (segmentSurfaces[1] is CornerRounded && ((CornerRounded)segmentSurfaces[1]).LeftCorner)) || 
                     (segmentSpans.Count == 3 && (segmentSurfaces[1] is TotalRounded || segmentSurfaces[1] is CornerRounded && ((CornerRounded)segmentSurfaces[1]).LeftCorner)))
                 {
-                    text = text + $" форма лобового стекла: скругленная;";
+                    text_ru = text_ru + $" форма лобового стекла: скругленная;";
+                    text_en = text_en + $" windscreen shape: rounded;";
                 }
                 else if (segmentSurfaces[1] is Constant || segmentSurfaces[1] is CornerRounded && ((CornerRounded)segmentSurfaces[1]).LeftCorner == false)
                 {
-                    text = text + $" форма лобового стекла: прямая;";
+                    text_ru = text_ru + $" форма лобового стекла: прямая;";
+                    text_en = text_en + $" windscreen shape: flat;";
                 }
 
                 if (segmentSpans.Count == 3)
                 {
                     if (segmentSpans[2][0] >= 0.9f)
                     {
-                        text = text + $" размер багажника: малый;";
+                        text_ru = text_ru + $" размер багажника: малый;";
+                        text_en = text_en + $" boot size: small;";
                     }
                     else if (segmentSpans[2][0] <= 0.8f)
                     {
-                        text = text + $" размер багажника: средний;";
+                        text_ru = text_ru + $" размер багажника: средний;";
+                        text_en = text_en + $" boot size: medium;";
                     }
                 }
                 if ((segmentSpans.Count == 2 && (segmentSurfaces[1] is CornerRounded && ((CornerRounded)segmentSurfaces[1]).RightCorner)) ||
                     (segmentSpans.Count == 3 && (segmentSurfaces[2] is TotalRounded || segmentSurfaces[2] is CornerRounded && ((CornerRounded)segmentSurfaces[1]).RightCorner)))
                 {
-                    text = text + $" форма багажника: скругленная;";
+                    text_ru = text_ru + $" форма багажника: скругленная;";
+                    text_en = text_en + $" boot shape: rounded;";
                 }
                 else if ((segmentSpans.Count == 2 && (segmentSurfaces[1] is CornerRounded && ((CornerRounded)segmentSurfaces[1]).RightCorner == false || segmentSurfaces[1] is Constant)) ||
                     (segmentSpans.Count == 3 && (segmentSurfaces[2] is Constant || segmentSurfaces[2] is CornerRounded && ((CornerRounded)segmentSurfaces[1]).RightCorner == false)))
                 {
-                    text = text + $" форма багажника: прямая;";
+                    text_ru = text_ru + $" форма багажника: прямая;";
+                    text_en = text_en + $" boot shape: flat;";
                 }
 
-                texts.Add(text);
+                texts_ru.Add(text_ru);
+                texts_en.Add(text_en);
             }
-            string textsPath = $"C:\\Все_файлы\\Научная_деятельность\\GenerativeDesign\\CarsDataset\\InputTexts.txt";
-            using (StreamWriter writer = new StreamWriter(textsPath))
+            string textsPath = $"C:\\Все_файлы\\Научная_деятельность\\GenerativeDesign\\CarsDataset";
+            List<string> textsFiles = new List<string>() { "InputTextsRu.txt", "InputTextsEn.txt" };
+            List<List<string>> texts = new List<List<string>>() { texts_ru, texts_en};
+            for (int i = 0; i < texts.Count; i++)
             {
-                writer.Write(String.Join("\n", texts));
+                List<string> localTexts = texts[i];
+                string localFile = textsFiles[i];
+                string localPath = Path.Combine(textsPath, localFile);
+                using (StreamWriter writer = new StreamWriter(localPath))
+                {
+                    writer.Write(String.Join("\n", localTexts));
+                }
             }
         }
         

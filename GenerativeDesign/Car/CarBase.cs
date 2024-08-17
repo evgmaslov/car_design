@@ -156,12 +156,12 @@ namespace GenerativeDesign.Cars
             newCar.WheelRelativeBiasesAlongLength = WheelRelativeBiasesAlongLength;
 
             newCar.WheelBaseSegmentsSpans = WheelBaseSegmentsSpans;
-            newCar.WheelBaseSegmentsBottomSurfaces = WheelBaseSegmentsBottomSurfaces;
-            newCar.WheelBaseTopSurface = WheelBaseTopSurface;
+            newCar.WheelBaseSegmentsBottomSurfaces = WheelBaseSegmentsBottomSurfaces.Select(x => x.Clone() as Line).ToList();
+            newCar.WheelBaseTopSurface = WheelBaseTopSurface.Clone() as Line;
             newCar.GapBetweenWheelAndBase = GapBetweenWheelAndBase;
 
             newCar.BodySegmentsSpans = BodySegmentsSpans;
-            newCar.BodySegmentsTopSurfaces = BodySegmentsTopSurfaces;
+            newCar.BodySegmentsTopSurfaces = BodySegmentsTopSurfaces.Select(x => x.Clone() as Line).ToList();
             return newCar;
         }
     }
