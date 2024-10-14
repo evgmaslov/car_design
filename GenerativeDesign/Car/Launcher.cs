@@ -3,6 +3,9 @@ using PicoGK;
 using GenerativeDesign.Cars;
 using System.Text.RegularExpressions;
 using System.Numerics;
+using System.Text.Json.Nodes;
+using System.Reflection;
+using System.Reflection.Emit;
 
 namespace GenerativeDesign
 {
@@ -64,236 +67,374 @@ namespace GenerativeDesign
             }
         }
 
-        public static void GenerateDataset()
+        private static (List<string> prompts, List<string> codes) GenerateForType(CarType type, List<Car> allCars, float textsPerSample=-1)
         {
-            AClass aClass = new AClass();
-            List<Car> cars = aClass.GetCars();
-            string path = "C:\\Все_файлы\\Научная_деятельность\\GenerativeDesign\\generative_design\\GenerativeDesign\\Car\\Car.cs";
-            string file = File.ReadAllText(path);
-            List<string> texts_ru = new List<string>();
-            List<string> texts_en = new List<string>();
+            List<Car> cars = type.GetCars();
+
+            List<string> numParameters = new List<string>()
+            {
+                "Length", "Width", "Height", "WheelRadius"
+            };
+            List<string> numParameterNames = new List<string>()
+            {
+                "length", "width", "height", "wheel radius"
+            };
+            Dictionary<string, List<float>> classNumParameterBoundaries = new Dictionary<string, List<float>>();
+            Dictionary<string, List<float>> totalNumParameterBoundaries = new Dictionary<string, List<float>>();
+            foreach (string parameter in numParameters)
+            {
+                classNumParameterBoundaries[parameter] = new List<float>() { float.MaxValue, float.MinValue };
+                totalNumParameterBoundaries[parameter] = new List<float>() { float.MaxValue, float.MinValue };
+            }
+            foreach (string parameter in numParameters)
+            {
+                FieldInfo field = typeof(Car).GetField(parameter);
+                foreach (Car car in cars)
+                {
+                    float value = (float)field.GetValue(car);
+                    if (value < classNumParameterBoundaries[parameter][0])
+                    {
+                        classNumParameterBoundaries[parameter][0] = value;
+                    }
+                    if (value > classNumParameterBoundaries[parameter][1])
+                    {
+                        classNumParameterBoundaries[parameter][1] = value;
+                    }
+                }
+                foreach (Car car in allCars)
+                {
+                    float value = (float)field.GetValue(car);
+                    if (value < totalNumParameterBoundaries[parameter][0])
+                    {
+                        totalNumParameterBoundaries[parameter][0] = value;
+                    }
+                    if (value > totalNumParameterBoundaries[parameter][1])
+                    {
+                        totalNumParameterBoundaries[parameter][1] = value;
+                    }
+                }
+            }
+
+            string basePrompt = "Generate a car with the following characteristics: ";
+            List<string> prompts = new List<string>();
+            List<string> codes = new List<string>();
+            string carType = "";
+            if (type is Sedan)
+            {
+                carType = "sedan";
+            }
+            else if (type is Hatchback)
+            {
+                carType = "hatchback";
+            }
+            else if (type is StationWagon)
+            {
+                carType = "station wagon";
+            }
+            else if (type is Coupe)
+            {
+                carType = "coupe";
+            }
+            else if (type is Limousine)
+            {
+                carType = "limousine";
+            }
+            else if (type is SUV)
+            {
+                carType = "SUV";
+            }
+            else if (type is Pickup)
+            {
+                carType = "pickup";
+            }
+            else if (type is Minivan)
+            {
+                carType = "minivan";
+            }
+            else if (type is Van)
+            {
+                carType = "van";
+            }
+            else if (type is Truck)
+            {
+                carType = "truck";
+            }
+            List<string> numWords = new List<string>() { "first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth", "ninth", "tenth"};
             for (int i = 0; i < cars.Count; i++)
             {
                 Car car = cars[i];
-                string pattern = @"(FIELD =)[^;]+(;\s+)";
-                Regex re = new Regex(pattern);
-                string fieldName = "FIELD";
-                string value = "";
-                string baseReplacement = @"$1 VALUE$2";
-                string replacement = "";
+                string code = car.ToString();
+                List<string> localTexts = new List<string>();
 
-                fieldName = "Length";
-                re = new Regex(Regex.Replace(pattern, "FIELD", $"{fieldName}"));
-                value = car.Length.ToString() + "f";
-                replacement = Regex.Replace(baseReplacement, "VALUE", $"{value}");
-                file = re.Replace(file, replacement);
-
-                fieldName = "Width";
-                re = new Regex(Regex.Replace(pattern, "FIELD", $"{fieldName}"));
-                value = car.Width.ToString() + "f";
-                replacement = Regex.Replace(baseReplacement, "VALUE", $"{value}");
-                file = re.Replace(file, replacement);
-
-                fieldName = "Height";
-                re = new Regex(Regex.Replace(pattern, "FIELD", $"{fieldName}"));
-                value = car.Height.ToString() + "f";
-                replacement = Regex.Replace(baseReplacement, "VALUE", $"{value}");
-                file = re.Replace(file, replacement);
-
-                fieldName = "WheelWidth";
-                re = new Regex(Regex.Replace(pattern, "FIELD", $"{fieldName}"));
-                value = car.WheelWidth.ToString() + "f";
-                replacement = Regex.Replace(baseReplacement, "VALUE", $"{value}");
-                file = re.Replace(file, replacement);
-
-                fieldName = "WheelRadius";
-                re = new Regex(Regex.Replace(pattern, "FIELD", $"{fieldName}"));
-                value = car.WheelRadius.ToString() + "f";
-                replacement = Regex.Replace(baseReplacement, "VALUE", $"{value}");
-                file = re.Replace(file, replacement);
-
-                fieldName = "WheelRelativeBiasAlongWidth";
-                re = new Regex(Regex.Replace(pattern, "FIELD", $"{fieldName}"));
-                value = car.WheelRelativeBiasAlongWidth.ToString() + "f";
-                replacement = Regex.Replace(baseReplacement, "VALUE", $"{value}");
-                file = re.Replace(file, replacement);
-
-                fieldName = "WheelRelativeBiasesAlongLength";
-                re = new Regex(Regex.Replace(pattern, "FIELD", $"{fieldName}"));
-                List<string> formattedBiases = new List<string>();
-                foreach (float bias in car.WheelRelativeBiasesAlongLength)
+                string prompt = basePrompt;
+                List<string> textVariants = new List<string>();
+                List<string> carTypeTextVariants = new List<string>();
+                carTypeTextVariants.Add(prompt);
+                carTypeTextVariants.Add(prompt + $"body type: {carType};");
+                List<string> typeParameterDescriptions = new List<string>();
+                string description = $"{car.WheelRelativeBiasesAlongLength.Count} wheelsets";
+                typeParameterDescriptions.Add(description);
+                if (type is Sedan || type is Coupe)
                 {
-                    formattedBiases.Add(bias.ToString() + "f");
+                    typeParameterDescriptions.Add("normal size bonnet");
+                    if (car.BodySegmentsSpans[2][0] == 0.8f)
+                    {
+                        typeParameterDescriptions.Add("normal size boot");
+                    }
+                    else if (car.BodySegmentsSpans[2][0] == 0.9f)
+                    {
+                        typeParameterDescriptions.Add("small boot");
+                    }
                 }
-                value = $"new List<float>() {{ {String.Join(", ", formattedBiases)} }}";
-                replacement = Regex.Replace(baseReplacement, "VALUE", $"{value}");
-                file = re.Replace(file, replacement);
-
-                fieldName = "WheelBaseSegmentsSpans";
-                re = new Regex(Regex.Replace(pattern, "FIELD", $"{fieldName}"));
-                List<string> spans = new List<string>();
-                foreach (List<float> span in car.WheelBaseSegmentsSpans)
+                else if (type is Hatchback || type is SUV)
                 {
-                    string strSpan = $"new List<float>(){{ {span[0] + "f"}, {span[1] + "f"} }}";
-                    spans.Add(strSpan);
+                    typeParameterDescriptions.Add("normal size bonnet");
+                    typeParameterDescriptions.Add("normal size boot");
+                    typeParameterDescriptions.Add("door at the rear");
                 }
-                value = $"new List<List<float>>() {{ {String.Join(", ", spans)} }}";
-                replacement = Regex.Replace(baseReplacement, "VALUE", $"{value}");
-                file = re.Replace(file, replacement);
-
-                fieldName = "WheelBaseSegmentsBottomSurfaces";
-                re = new Regex(Regex.Replace(pattern, "FIELD", $"{fieldName}"));
-                List<string> bottomSurfaces = new List<string>();
-                foreach (Line surf in car.WheelBaseSegmentsBottomSurfaces)
+                else if (type is StationWagon)
                 {
-                    bottomSurfaces.Add(surf.ToString());
+                    typeParameterDescriptions.Add("normal size bonnet");
+                    typeParameterDescriptions.Add("large body");
+                    typeParameterDescriptions.Add("large boot");
+                    typeParameterDescriptions.Add("door at the rear");
                 }
-                value = $"new List<Line>() {{ {String.Join(", ", bottomSurfaces)} }}";
-                replacement = Regex.Replace(baseReplacement, "VALUE", $"{value}");
-                file = re.Replace(file, replacement);
-
-                fieldName = "WheelBaseTopSurface";
-                re = new Regex(Regex.Replace(pattern, "FIELD", $"{fieldName}"));
-                value = car.WheelBaseTopSurface.ToString();
-                replacement = Regex.Replace(baseReplacement, "VALUE", $"{value}");
-                file = re.Replace(file, replacement);
-
-                fieldName = "GapBetweenWheelAndBase";
-                re = new Regex(Regex.Replace(pattern, "FIELD", $"{fieldName}"));
-                value = car.GapBetweenWheelAndBase.ToString() + "f";
-                replacement = Regex.Replace(baseReplacement, "VALUE", $"{value}");
-                file = re.Replace(file, replacement);
-
-                fieldName = "BodySegmentsSpans";
-                re = new Regex(Regex.Replace(pattern, "FIELD", $"{fieldName}"));
-                List<string> bodySpans = new List<string>();
-                foreach (List<float> span in car.BodySegmentsSpans)
+                else if (type is Limousine)
                 {
-                    string strSpan = $"new List<float>(){{ {span[0] + "f"}, {span[1] + "f"} }}";
-                    bodySpans.Add(strSpan);
+                    typeParameterDescriptions.Add("normal size bonnet");
+                    if (car.BodySegmentsSpans[2][0] == 0.8f)
+                    {
+                        typeParameterDescriptions.Add("normal size boot");
+                    }
+                    else if (car.BodySegmentsSpans[2][0] == 0.9f)
+                    {
+                        typeParameterDescriptions.Add("small boot");
+                    }
+                    typeParameterDescriptions.Add("very long body");
                 }
-                value = $"new List<List<float>>() {{ {String.Join(", ", bodySpans)} }}";
-                replacement = Regex.Replace(baseReplacement, "VALUE", $"{value}");
-                file = re.Replace(file, replacement);
-
-                fieldName = "BodySegmentsTopSurfaces";
-                re = new Regex(Regex.Replace(pattern, "FIELD", $"{fieldName}"));
-                List<string> topSurfaces = new List<string>();
-                foreach (Line surf in car.BodySegmentsTopSurfaces)
+                else if (type is Pickup)
                 {
-                    topSurfaces.Add(surf.ToString());
+                    typeParameterDescriptions.Add("normal size bonnet");
+                    typeParameterDescriptions.Add("large boot");
                 }
-                value = $"new List<Line>() {{ {String.Join(", ", topSurfaces)} }}";
-                replacement = Regex.Replace(baseReplacement, "VALUE", $"{value}");
-                file = re.Replace(file, replacement);
+                else if (type is Minivan)
+                {
+                    typeParameterDescriptions.Add("small bonnet");
+                    typeParameterDescriptions.Add("large body");
+                    typeParameterDescriptions.Add("no boot");
+                }
+                else if (type is Van)
+                {
+                    typeParameterDescriptions.Add("normal size bonnet");
+                    if (car.BodySegmentsTopSurfaces[2].MaxHeight > car.BodySegmentsTopSurfaces[1].MaxHeight)
+                    {
+                        typeParameterDescriptions.Add("1 cargo container");
+                    }
+                    else
+                    {
+                        typeParameterDescriptions.Add("1 flatbed");
+                    }
+                }
+                else if (type is Truck)
+                {
+                    if (car.BodySegmentsTopSurfaces[0].MaxHeight > car.Height*0.6f)
+                    {
+                        typeParameterDescriptions.Add("no bonnet");
+                    }
+                    else if (car.BodySegmentsTopSurfaces[0].MaxHeight > car.Height * 0.6f)
+                    {
+                        typeParameterDescriptions.Add("large bonnet");
+                    }
+                    Line fairing = car.BodySegmentsTopSurfaces.Where(x => x is TotalRounded && x.MaxHeight == car.Height).FirstOrDefault();
+                    if (fairing != null)
+                    {
+                        typeParameterDescriptions.Add("roof fairing with sleeper cab");
+                    }
+                    int cargoCount = 0;
+                    for (int j = 0; j < car.BodySegmentsSpans.Count; j++)
+                    {
+                        List<float> span = car.BodySegmentsSpans[j];
+                        if (span[1] - span[0] > 0.17)
+                        {
+                            cargoCount = car.BodySegmentsTopSurfaces.Count - i;
+                            break;
+                        }
+                    }
+                    if (cargoCount == 1)
+                    {
+                        typeParameterDescriptions.Add("1 cargo container");
+                    }
+                    else if (cargoCount > 1)
+                    {
+                        typeParameterDescriptions.Add($"{cargoCount} cargo containers");
+                    }
+                }
+                List<List<string>> descriptionSamples = SampleWithDrop(typeParameterDescriptions);
+                foreach (List<string> sample in descriptionSamples)
+                {
+                    carTypeTextVariants.Add(prompt + String.Join(";", sample));
+                }
+                foreach (string carTypePrompt in carTypeTextVariants)
+                {
+                    textVariants.Add(carTypePrompt);
+                    List<int[]> masks = new List<int[]>();
+                    for (int j = 0; j < Math.Pow(2, numParameters.Count); j++)
+                    {
+                        int[] mask = new int[numParameters.Count];
+                        int div = j;
+                        int ind = numParameters.Count - 1;
+                        while (div > 0)
+                        {
+                            mask[ind] = div % 2;
+                            ind--;
+                            div = (int)(div / 2);
+                        }
+                        for (int k = 0; k < ind + 1; k++)
+                        {
+                            mask[k] = 0;
+                        }
+                        masks.Add(mask);
+                    }
+                    foreach (int[] mask in masks)
+                    {
+                        List<string> numParametersDescriptions = new List<string>();
+                        for (int k = 0; k < numParameters.Count; k++)
+                        {
+                            FieldInfo info = typeof(Car).GetField(numParameters[k]);
+                            float value = (float)info.GetValue(car);
+                            if (mask[k] == 0)
+                            {
+                                numParametersDescriptions.Add($"{numParameterNames[k]}: {value} cm");
+                            }
+                            else
+                            {
+                                string desc = "";
+                                float min = 0;
+                                float max = 0;
+                                if (carTypePrompt.Contains("body type:"))
+                                {
+                                    min = classNumParameterBoundaries[info.Name][0];
+                                    max = classNumParameterBoundaries[info.Name][1];
+                                }
+                                else
+                                {
+                                    min = totalNumParameterBoundaries[info.Name][0];
+                                    max = totalNumParameterBoundaries[info.Name][1];
+                                }
+                                float leftMedium = min + (max - min) / 3;
+                                float rightMedium = min + (max - min) * 2 / 3;
+                                if (value <= leftMedium)
+                                {
+                                    desc = "small";
+                                }
+                                else if (value >= rightMedium)
+                                {
+                                    desc = "big";
+                                }
+                                else
+                                {
+                                    desc = "medium";
+                                }
+                                numParametersDescriptions.Add($"{numParameterNames[k]} is {desc}");
+                            }
+                        }
 
+
+                        List<List<string>> numParametersDescriptionSamples = SampleWithDrop(numParametersDescriptions);
+                        foreach (List<string> sample in numParametersDescriptionSamples)
+                        {
+                            textVariants.Add($"{carTypePrompt}; {String.Join("; ", sample)}");
+                        }
+                    }
+                }
+                List<string> finalPrompts = new List<string>();
+                foreach (string text in textVariants)
+                {
+                    if (!finalPrompts.Contains(text))
+                    {
+                        finalPrompts.Add(text);
+                    }
+                }
+                if (textsPerSample == -1)
+                {
+                    foreach (string text in finalPrompts)
+                    {
+                        prompts.Add(text);
+                        codes.Add(code);
+                    }
+                }
+                else
+                {
+                    Random random = new Random();
+                    List<int> inds = new List<int>();
+                    for (int j = 0; j < textsPerSample; j++)
+                    {
+                        inds.Add(random.Next(0, finalPrompts.Count - 1));
+                    }
+                    foreach (int ind in inds)
+                    {
+                        prompts.Add(finalPrompts[ind]);
+                        codes.Add(code);
+                    }
+                }
+                
+            }
+            return (prompts, codes);
+        }
+
+        private static List<List<T>> SampleWithDrop<T>(List<T> samples)
+        {
+            List<List<T>> results = new List<List<T>>() { samples};
+            if (samples.Count > 1)
+            {
+                for (int i = 0; i < samples.Count; i++)
+                {
+                    List<T> toDrop = new List<T>(samples);
+                    toDrop.RemoveAt(i);
+                    List<List<T>> droppedResults = SampleWithDrop(toDrop);
+                    results = results.Concat(droppedResults).ToList();
+                }
+            }
+            return results;
+        }
+
+        public static void GenerateDataset()
+        {
+            List<CarType> carTypes = new List<CarType>()
+            {
+                new Sedan(), new Hatchback(), new StationWagon(), new Coupe(), new Limousine(), new SUV(), new Pickup(), new Minivan()
+            };
+            Van van = new Van();
+            van.NumValuesCount["Height"] = 2;
+            carTypes.Add(van);
+            Truck truck = new Truck();
+            truck.NumValuesCount["Height"] = 2;
+            carTypes.Add(truck);
+            List<Car> allCars = new List<Car>();
+            foreach (CarType type in carTypes)
+            {
+                allCars = allCars.Concat(type.GetCars()).ToList();
+            }
+            List<string> prompts = new List<string>();
+            List<string> codes = new List<string>();
+            foreach (CarType type in carTypes)
+            {
+                (List<string> prompts, List<string> codes) result = GenerateForType(type, allCars, 2);
+                prompts = prompts.Concat(result.prompts).ToList();
+                codes = codes.Concat(result.codes).ToList();
+            }
+            for (int i = 0; i < codes.Count; i++)
+            {
                 string newPath = $"C:\\Все_файлы\\Научная_деятельность\\GenerativeDesign\\CarsDataset\\OutputCode\\Code_{i}.cs";
                 using (StreamWriter writer = new StreamWriter(newPath))
                 {
-                    writer.WriteLine(file);
+                    writer.WriteLine(codes[i]);
                 }
-
-
-                string text_ru = "Напиши код для генерации автомобиля со следующими параметрами:";
-                text_ru = text_ru + $" длина: {car.Length} см;";
-                text_ru = text_ru + $" ширина: {car.Width} см;";
-                text_ru = text_ru + $" высота: {car.Height} см;";
-                text_ru = text_ru + $" ширина колеса: {car.WheelWidth} см;";
-                text_ru = text_ru + $" радиус колеса: {car.WheelRadius} см;";
-
-                string text_en = "Generate a car with the following characteristics:";
-                text_en = text_en + $" length: {car.Length} cm;";
-                text_en = text_en + $" width: {car.Width} cm;";
-                text_en = text_en + $" height: {car.Height} cm;";
-                text_en = text_en + $" wheel width: {car.WheelWidth} cm;";
-                text_en = text_en + $" wheel radius: {car.WheelRadius} cm;";
-                float minShift = float.MaxValue;
-                foreach (Line surf in car.WheelBaseSegmentsBottomSurfaces)
-                {
-                    if (surf.MinHeight < minShift)
-                    {
-                        minShift = surf.MinHeight;
-                    }
-                }
-                text_ru = text_ru + $" высота дорожного просвета: {minShift} см;";
-                text_en = text_en + $" clearance height: {minShift} cm;";
-
-                List<List<float>> segmentSpans = car.BodySegmentsSpans;
-                List<Line> segmentSurfaces = car.BodySegmentsTopSurfaces;
-                if (segmentSpans[0][1] <= 0.2f)
-                {
-                    text_ru = text_ru + $" размер капота: малый;";
-                    text_en = text_en + $" bonnet size : small;";
-                }
-                else if (segmentSpans[0][1] >= 0.3f)
-                {
-                    text_ru = text_ru + $" размер капота: большой;";
-                    text_en = text_en + $" bonnet size : large;";
-                }
-                if (segmentSurfaces[0] is CornerRounded && ((CornerRounded)segmentSurfaces[0]).LeftCorner || segmentSurfaces[0] is TotalRounded)
-                {
-                    text_ru = text_ru + $" форма капота: скругленная;";
-                    text_en = text_en + $" bonnet shape : rounded;";
-                }
-                else if (segmentSurfaces[0] is Constant)
-                {
-                    text_ru = text_ru + $" форма капота: прямая;";
-                    text_en = text_en + $" bonnet shape : flat;";
-                }
-
-                if ((segmentSpans.Count == 2 && (segmentSurfaces[1] is CornerRounded && ((CornerRounded)segmentSurfaces[1]).LeftCorner)) || 
-                    (segmentSpans.Count == 3 && (segmentSurfaces[1] is TotalRounded || segmentSurfaces[1] is CornerRounded && ((CornerRounded)segmentSurfaces[1]).LeftCorner)))
-                {
-                    text_ru = text_ru + $" форма лобового стекла: скругленная;";
-                    text_en = text_en + $" windscreen shape: rounded;";
-                }
-                else if (segmentSurfaces[1] is Constant || segmentSurfaces[1] is CornerRounded && ((CornerRounded)segmentSurfaces[1]).LeftCorner == false)
-                {
-                    text_ru = text_ru + $" форма лобового стекла: прямая;";
-                    text_en = text_en + $" windscreen shape: flat;";
-                }
-
-                if (segmentSpans.Count == 3)
-                {
-                    if (segmentSpans[2][0] >= 0.9f)
-                    {
-                        text_ru = text_ru + $" размер багажника: малый;";
-                        text_en = text_en + $" boot size: small;";
-                    }
-                    else if (segmentSpans[2][0] <= 0.8f)
-                    {
-                        text_ru = text_ru + $" размер багажника: средний;";
-                        text_en = text_en + $" boot size: medium;";
-                    }
-                }
-                if ((segmentSpans.Count == 2 && (segmentSurfaces[1] is CornerRounded && ((CornerRounded)segmentSurfaces[1]).RightCorner)) ||
-                    (segmentSpans.Count == 3 && (segmentSurfaces[2] is TotalRounded || segmentSurfaces[2] is CornerRounded && ((CornerRounded)segmentSurfaces[1]).RightCorner)))
-                {
-                    text_ru = text_ru + $" форма багажника: скругленная;";
-                    text_en = text_en + $" boot shape: rounded;";
-                }
-                else if ((segmentSpans.Count == 2 && (segmentSurfaces[1] is CornerRounded && ((CornerRounded)segmentSurfaces[1]).RightCorner == false || segmentSurfaces[1] is Constant)) ||
-                    (segmentSpans.Count == 3 && (segmentSurfaces[2] is Constant || segmentSurfaces[2] is CornerRounded && ((CornerRounded)segmentSurfaces[1]).RightCorner == false)))
-                {
-                    text_ru = text_ru + $" форма багажника: прямая;";
-                    text_en = text_en + $" boot shape: flat;";
-                }
-
-                texts_ru.Add(text_ru);
-                texts_en.Add(text_en);
             }
-            string textsPath = $"C:\\Все_файлы\\Научная_деятельность\\GenerativeDesign\\CarsDataset";
-            List<string> textsFiles = new List<string>() { "InputTextsRu.txt", "InputTextsEn.txt" };
-            List<List<string>> texts = new List<List<string>>() { texts_ru, texts_en};
-            for (int i = 0; i < texts.Count; i++)
+            string textsPath = $"C:\\Все_файлы\\Научная_деятельность\\GenerativeDesign\\CarsDataset\\InputText.txt";
+            using (StreamWriter writer = new StreamWriter(textsPath))
             {
-                List<string> localTexts = texts[i];
-                string localFile = textsFiles[i];
-                string localPath = Path.Combine(textsPath, localFile);
-                using (StreamWriter writer = new StreamWriter(localPath))
-                {
-                    writer.Write(String.Join("\n", localTexts));
-                }
+                writer.Write(String.Join("\n", prompts));
             }
         }
         
@@ -353,6 +494,59 @@ namespace GenerativeDesign
                     writer.Write(newCode);
                 }
             }
+        }
+
+        public static void GenerateTypes()
+        {
+            string folder = "C:\\Все_файлы\\Работа\\AIRI\\computational_intelligence\\leap_71\\code_by_types";
+
+            List<CarType> carTypes = new List<CarType>()
+            {
+                new Sedan(), new Hatchback(), new StationWagon(), new Coupe(), new Limousine(), new SUV(), new Pickup(), new Minivan()
+            };
+            Van van = new Van();
+            van.NumValuesCount["Height"] = 2;
+            carTypes.Add(van);
+            Truck truck = new Truck();
+            truck.NumValuesCount["Height"] = 2;
+            carTypes.Add(truck);
+            List<string> carTypesNames = new List<string>()
+            {
+                "Sedan", "Hatchback", "StationWagon", "Coupe", "Limousine", "SUV", "Pickup", "Minivan", "Van", "Truck"
+            };
+            for (int i = 0; i < carTypes.Count; i++)
+            {
+                CarType type = carTypes[i];
+                string name = carTypesNames[i];
+                (List<string> prompts, List<string> codes) cars = GenerateForType(type, new List<Car>(), 1);
+                Directory.CreateDirectory(Path.Combine(folder, name));
+                for (int j = 0; j < cars.codes.Count; j++)
+                {
+                    string newPath = Path.Combine(folder, name, $"Code_{j}.cs");
+                    using (StreamWriter writer = new StreamWriter(newPath))
+                    {
+                        writer.WriteLine(cars.codes[j]);
+                    }
+                }
+            }
+        }
+        public static void CompileAndDisplay()
+        {
+            string path = "C:\\Все_файлы\\Научная_деятельность\\GenerativeDesign\\sample.txt";
+            string code = "";
+            using (StreamReader reader = new StreamReader(path))
+            {
+                code = reader.ReadToEnd();
+            }
+            RoslynCompiler compiler = new RoslynCompiler("GenerativeDesign.Cars.Car", code, new[] { typeof(Console), typeof(CarBase), typeof(List<>) });
+            Type carType = compiler.Compile();
+            object carInstance = Activator.CreateInstance(carType);
+
+            Vector3 position = new Vector3(0, 0, 0);
+            carType.GetField("BasePoint").SetValue(carInstance, position);
+            object objVoxels = carType.GetMethod("voxConstruct").Invoke(carInstance, new object[] { });
+            Voxels voxCar = (Voxels)objVoxels;
+            Sh.PreviewVoxels(voxCar, Cp.clrRock);
         }
     }
 }

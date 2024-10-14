@@ -6,6 +6,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Numerics;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace GenerativeDesign.Cars
@@ -163,6 +164,124 @@ namespace GenerativeDesign.Cars
             newCar.BodySegmentsSpans = BodySegmentsSpans;
             newCar.BodySegmentsTopSurfaces = BodySegmentsTopSurfaces.Select(x => x.Clone() as Line).ToList();
             return newCar;
+        }
+        public override string ToString()
+        {
+            string path = "C:\\Все_файлы\\Научная_деятельность\\GenerativeDesign\\generative_design\\GenerativeDesign\\Car\\Car.cs";
+            string file = File.ReadAllText(path);
+
+            string pattern = @"(FIELD =)[^;]+(;\s+)";
+            Regex re = new Regex(pattern);
+            string fieldName = "FIELD";
+            string value = "";
+            string baseReplacement = @"$1 VALUE$2";
+            string replacement = "";
+
+            fieldName = "Length";
+            re = new Regex(Regex.Replace(pattern, "FIELD", $"{fieldName}"));
+            value = this.Length.ToString() + "f";
+            replacement = Regex.Replace(baseReplacement, "VALUE", $"{value}");
+            file = re.Replace(file, replacement);
+
+            fieldName = "Width";
+            re = new Regex(Regex.Replace(pattern, "FIELD", $"{fieldName}"));
+            value = this.Width.ToString() + "f";
+            replacement = Regex.Replace(baseReplacement, "VALUE", $"{value}");
+            file = re.Replace(file, replacement);
+
+            fieldName = "Height";
+            re = new Regex(Regex.Replace(pattern, "FIELD", $"{fieldName}"));
+            value = this.Height.ToString() + "f";
+            replacement = Regex.Replace(baseReplacement, "VALUE", $"{value}");
+            file = re.Replace(file, replacement);
+
+            fieldName = "WheelWidth";
+            re = new Regex(Regex.Replace(pattern, "FIELD", $"{fieldName}"));
+            value = this.WheelWidth.ToString() + "f";
+            replacement = Regex.Replace(baseReplacement, "VALUE", $"{value}");
+            file = re.Replace(file, replacement);
+
+            fieldName = "WheelRadius";
+            re = new Regex(Regex.Replace(pattern, "FIELD", $"{fieldName}"));
+            value = this.WheelRadius.ToString() + "f";
+            replacement = Regex.Replace(baseReplacement, "VALUE", $"{value}");
+            file = re.Replace(file, replacement);
+
+            fieldName = "WheelRelativeBiasAlongWidth";
+            re = new Regex(Regex.Replace(pattern, "FIELD", $"{fieldName}"));
+            value = this.WheelRelativeBiasAlongWidth.ToString() + "f";
+            replacement = Regex.Replace(baseReplacement, "VALUE", $"{value}");
+            file = re.Replace(file, replacement);
+
+            fieldName = "WheelRelativeBiasesAlongLength";
+            re = new Regex(Regex.Replace(pattern, "FIELD", $"{fieldName}"));
+            List<string> formattedBiases = new List<string>();
+            foreach (float bias in this.WheelRelativeBiasesAlongLength)
+            {
+                formattedBiases.Add(bias.ToString() + "f");
+            }
+            value = $"new List<float>() {{ {String.Join(", ", formattedBiases)} }}";
+            replacement = Regex.Replace(baseReplacement, "VALUE", $"{value}");
+            file = re.Replace(file, replacement);
+
+            fieldName = "WheelBaseSegmentsSpans";
+            re = new Regex(Regex.Replace(pattern, "FIELD", $"{fieldName}"));
+            List<string> spans = new List<string>();
+            foreach (List<float> span in this.WheelBaseSegmentsSpans)
+            {
+                string strSpan = $"new List<float>(){{ {span[0] + "f"}, {span[1] + "f"} }}";
+                spans.Add(strSpan);
+            }
+            value = $"new List<List<float>>() {{ {String.Join(", ", spans)} }}";
+            replacement = Regex.Replace(baseReplacement, "VALUE", $"{value}");
+            file = re.Replace(file, replacement);
+
+            fieldName = "WheelBaseSegmentsBottomSurfaces";
+            re = new Regex(Regex.Replace(pattern, "FIELD", $"{fieldName}"));
+            List<string> bottomSurfaces = new List<string>();
+            foreach (Line surf in this.WheelBaseSegmentsBottomSurfaces)
+            {
+                bottomSurfaces.Add(surf.ToString());
+            }
+            value = $"new List<Line>() {{ {String.Join(", ", bottomSurfaces)} }}";
+            replacement = Regex.Replace(baseReplacement, "VALUE", $"{value}");
+            file = re.Replace(file, replacement);
+
+            fieldName = "WheelBaseTopSurface";
+            re = new Regex(Regex.Replace(pattern, "FIELD", $"{fieldName}"));
+            value = this.WheelBaseTopSurface.ToString();
+            replacement = Regex.Replace(baseReplacement, "VALUE", $"{value}");
+            file = re.Replace(file, replacement);
+
+            fieldName = "GapBetweenWheelAndBase";
+            re = new Regex(Regex.Replace(pattern, "FIELD", $"{fieldName}"));
+            value = this.GapBetweenWheelAndBase.ToString() + "f";
+            replacement = Regex.Replace(baseReplacement, "VALUE", $"{value}");
+            file = re.Replace(file, replacement);
+
+            fieldName = "BodySegmentsSpans";
+            re = new Regex(Regex.Replace(pattern, "FIELD", $"{fieldName}"));
+            List<string> bodySpans = new List<string>();
+            foreach (List<float> span in this.BodySegmentsSpans)
+            {
+                string strSpan = $"new List<float>(){{ {span[0] + "f"}, {span[1] + "f"} }}";
+                bodySpans.Add(strSpan);
+            }
+            value = $"new List<List<float>>() {{ {String.Join(", ", bodySpans)} }}";
+            replacement = Regex.Replace(baseReplacement, "VALUE", $"{value}");
+            file = re.Replace(file, replacement);
+
+            fieldName = "BodySegmentsTopSurfaces";
+            re = new Regex(Regex.Replace(pattern, "FIELD", $"{fieldName}"));
+            List<string> topSurfaces = new List<string>();
+            foreach (Line surf in this.BodySegmentsTopSurfaces)
+            {
+                topSurfaces.Add(surf.ToString());
+            }
+            value = $"new List<Line>() {{ {String.Join(", ", topSurfaces)} }}";
+            replacement = Regex.Replace(baseReplacement, "VALUE", $"{value}");
+            file = re.Replace(file, replacement);
+            return file;
         }
     }
 }

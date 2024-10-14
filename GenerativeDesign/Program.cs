@@ -1,7 +1,7 @@
 ﻿using GenerativeDesign;
 try
 {
-    PicoGK.Library.Go(0.5f, Launcher.SampleCars);
+    PicoGK.Library.Go(0.5f, Launcher.CompileAndDisplay);
 }
 
 catch (Exception e)
